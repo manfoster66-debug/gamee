@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Word Search Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      overflow-x: auto;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      max-width: 100vw;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 30px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(15px);
+      border-radius: 25px;
+      padding: 15px 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .stat-item {
+      text-align: center;
+      position: relative;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffdd57;
+    }
+
+    .timer {
+      color: #ff6b6b !important;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .game-container {
+      display: flex;
+      gap: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 25px;
+      padding: 30px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      max-height: 80vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(12, 35px);
+      grid-template-rows: repeat(12, 35px);
+      gap: 2px;
+      user-select: none;
+      z-index: 2;
+      position: relative;
+    }
+
+    .cell {
+      width: 35px;
+      height: 35px;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 600;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cell::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+
+    .cell:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(1.1);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .cell:hover::before {
+      left: 100%;
+    }
+
+    .cell.selected {
+      background: linear-gradient(135deg, #ffcc00, #ff9500);
+      color: #000;
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+    }
+
+    .cell.found {
+      background: linear-gradient(135deg, #00ff99, #00cc88);
+      color: #000;
+      animation: foundPulse 0.6s ease;
+      box-shadow: 0 0 25px rgba(0, 255, 153, 0.5);
+    }
+
+    @keyframes foundPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    .word-list {
+      min-width: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+      z-index: 2;
+      position: relative;
+    }
+
+    .word-list h2 {
+      margin: 0 0 15px;
+      font-size: 22px;
+      color: #ffdd57;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .word-list ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .word-list li {
+      font-size: 15px;
+      padding: 10px 15px;
+      margin: 3px 0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: 2px solid transparent;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .word-list li:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateX(8px);
+      border-color: rgba(255, 221, 87, 0.5);
+    }
+
+    .word-list li.found {
+      text-decoration: line-through;
+      color: #00ff99;
+      background: rgba(0, 255, 153, 0.2);
+      animation: wordFound 0.8s ease;
+    }
+
+    @keyframes wordFound {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); background: rgba(0, 255, 153, 0.8); }
+      100% { transform: scale(1); }
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 25px;
+      background: linear-gradient(135deg, #ffcc00, #ff9500);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #000;
+      font-size: 14px;
+      box-shadow: 0 5px 15px rgba(255, 204, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover {
+      background: linear-gradient(135deg, #ffaa00, #ff7700);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 204, 0, 0.5);
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .help-box {
+      display: none;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 15px;
+      margin-top: 15px;
+      max-width: 600px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      animation: fadeInUp 0.3s ease;
+    }
+
+    @keyframes fadeInUp {
+      from { 
+        opacity: 0; 
+        transform: translateY(20px); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0); 
+      }
+    }
+
+    #levelLabel {
+      font-size: 24px;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(135deg, #ffdd57, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .difficulty-selector {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .difficulty-btn {
+      padding: 8px 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: transparent;
+      color: white;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .difficulty-btn.active {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffdd57;
+    }
+
+    .completion-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 1000;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      display: none;
+      animation: celebrateIn 0.8s ease;
+    }
+
+    @keyframes celebrateIn {
+      0% { 
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3) rotate(180deg);
+      }
+      100% { 
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+      }
+    }
+
+    .stars {
+      font-size: 30px;
+      margin: 10px 0;
+      animation: sparkle 1s infinite alternate;
+    }
+
+    @keyframes sparkle {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.2); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .game-container {
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+      }
+      
+      .board {
+        grid-template-columns: repeat(12, 28px);
+        grid-template-rows: repeat(12, 28px);
+      }
+      
+      .cell {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+      }
+      
+      .stats-bar {
+        gap: 15px;
+        padding: 12px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="levelLabel">Level 1 – Find 10 words</div>
+    
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-label">Score</div>
+        <div class="stat-value" id="score">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Found</div>
+        <div class="stat-value" id="found">0/10</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Time</div>
+        <div class="stat-value timer" id="timer">0:00</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Level</div>
+        <div class="stat-value" id="levelStat">1</div>
+      </div>
+    </div>
+
+    <div class="difficulty-selector">
+      <button class="difficulty-btn active" onclick="setDifficulty('easy')">Easy</button>
+      <button class="difficulty-btn" onclick="setDifficulty('medium')">Medium</button>
+      <button class="difficulty-btn" onclick="setDifficulty('hard')">Hard</button>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="newGame()">New Game</button>
+      <button class="btn" onclick="hint()">Hint (10pts)</button>
+      <button class="btn" onclick="reveal()">Reveal All</button>
+      <button class="btn" onclick="toggleHelp()">Help</button>
+      <button class="btn" onclick="nextLevel()" id="nextLevelBtn">Next Level</button>
+    </div>
+
+    <div class="help-box" id="helpBox">
+      <h3>How to Play:</h3>
+      <p>🔍 Drag with your mouse to select letters and form words</p>
+      <p>⭐ Words can be horizontal, vertical, or diagonal</p>
+      <p>🎯 Find all words to complete the level</p>
+      <p>⏰ Faster completion = Higher score!</p>
+      <p>💡 Use hints wisely - they cost points</p>
+    </div>
+
+    <div class="game-container">
+      <div class="board" id="board"></div>
+      <div class="word-list">
+        <h2>Words to Find</h2>
+        <div id="wordCount" style="text-align: center; margin-bottom: 10px; font-size: 14px; opacity: 0.8;"></div>
+        <ul id="wordList"></ul>
+        <div id="allWordsDisplay" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+          <h3 style="font-size: 16px; margin-bottom: 10px; color: #ffdd57;">Complete Word Bank:</h3>
+          <div id="wordBank" style="font-size: 12px; line-height: 1.4; opacity: 0.9;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="completion-message" id="completionMessage">
+      <div class="stars">⭐ ⭐ ⭐</div>
+      <h2>Level Complete!</h2>
+      <p id="completionText">Great job!</p>
+      <button class="btn" onclick="hideCompletion()">Continue</button>
+    </div>
+  </div>
+
+  <script>
+    // Word Pool
+    const wordPool = [
+    "BAMITSTECH","LEGACY","WAHAB","MUBARAK","ELIANA","AISHETU","GHANA","GLORIA","BUI","PYTHON",
+    "CHENSUM","BENJAMIN","SUNYAZI","MONGO","FIREBASE","RUBY","PHP","PERL","GO","RUST",
+    "TYPESCRIPT","SCALA","HASKELL","MATLAB","JULIA","C","CPP","CLOUD","LINUX","WINDOWS",
+    "ANDROID","IOS","BINARY","SERVER","CLIENT","DOCKER","KUBERNETES","AI","ML","ALGORITHM",
+    "APPLE","ORANGE","MANGO","BANANA","GRAPE","PINEAPPLE","STRAWBERRY","CHERRY","LEMON","PEACH",
+    "PEAR","PAPAYA","KIWI","PLUM","WATERMELON","COCONUT","FIG","GUAVA","LYCHEE","APRICOT",
+    "BERRY","DATE","OLIVE","POMEGRANATE","MELON","AVOCADO","ONION","GARLIC","GINGER","TOMATO",
+    "CARROT","POTATO","CABBAGE","BROCCOLI","SPINACH","RICE","BREAD","PIZZA","BURGER","PASTA",
+    "DOG","CAT","LION","TIGER","BEAR","EAGLE","ZEBRA","HORSE","SNAKE","SHARK",
+    "DOLPHIN","WHALE","FROG","RABBIT","MOUSE","RAT","PANDA","KANGAROO","KOALA","BAT",
+    "WOLF","FOX","DEER","CAMEL","GOAT","SHEEP","COW","BUFFALO","DONKEY","MONKEY",
+    "GORILLA","ELEPHANT","RHINO","HIPPO","CROCODILE","ALLIGATOR","OWL","PARROT","PEACOCK","HEN",
+    "USA","CANADA","INDIA","CHINA","JAPAN","GERMANY","FRANCE","ITALY","SPAIN","BRAZIL",
+    "RUSSIA","UK","MEXICO","EGYPT","NIGERIA","KENYA","ARGENTINA","CHILE","PERU","COLOMBIA",
+    "FOOTBALL","SOCCER","BASKETBALL","BASEBALL","TENNIS","CRICKET","HOCKEY","GOLF","RUGBY","BOXING",
+    "SWIMMING","CYCLING","RUNNING","SKIING","SURFING","SKATING","CHESS","CARDS","POKER","DARTS",
+    "MUSIC","GUITAR","PIANO","VIOLIN","DRUM","SINGER","MOVIE","ACTOR","DANCE","STAGE",
+    "PHONE","LAPTOP","TABLET","SCREEN","ROBOT","DRONE","SPACE","EARTH","MOON","MARS",
+    "ABILITY","ABOUT","ABOVE","ACCEPT","ACCOUNT","ACTION","ACTOR","ACTUAL","ADAPT","ADDRESS",
+    "ADVANCE","ADVICE","AFRICA","AGENT","AGREE","AHEAD","ALARM","ALBUM","ALERT","ALIEN",
+    "AMAZON","AMOUNT","ANCIENT","ANIMAL","ANSWER","ANYONE","APART","APPEAR","APPLY","AREA",
+    "ARGUE","ARISE","ARMOR","AROUND","ARRIVE","ARTIST","ASPECT","ASSIST","ATTACK","BALANCE","BATTLE","BEAUTY","BELIEVE","BENEATH","BILLION","BOTTLE","BRANCH","BRIGHT","BRIDGE",
+    "BUDGET","BUTTON","CAPTAIN","CAPTURE","CAREFUL","CENTRAL","CHALLENGE","CHANCE","CHANGE","CHARGE",
+    "CIRCLE","CITIZEN","CLASSIC","CLIMATE","COLLECT","COLLEGE","COLOR","COMMON","COMPANY","COMPETE",
+    "COMPLETE","CONCEPT","CONNECT","CONTROL","CORRECT","COUNTRY","COURAGE","CREATE","CRISIS","CUSTOM",
+    "DAMAGE","DANGER","DECADE","DECIDE","DECLARE","DEEPER","DEFINE","DEMAND","DEPEND","DESIGN",
+    "DETAIL","DEVICE","DIRECT","DOCTOR","DOUBLE","DRAGON","DRIVER","DYNAMIC","EASILY","EDITOR",
+    "EFFECT","EFFORT","EIGHTH","EITHER","ENERGY","ENJOY","ENOUGH","ENTER","ENTIRE","EQUAL",
+    "ESSENCE","ETHICS","EUROPE","EVENTS","EXACT","EXAMPLE","EXIST","EXPECT","EXPORT","EXTEND",
+    "FAMILY","FAMOUS","FATHER","FELLOW","FIGURE","FINGER","FUTURE","FLOOR","FOREST","FORMER",
+    "FRIEND","FRONT","FUTURE","GALAXY","GARDEN","GENDER","GENIUS","GLOBAL","GOLDEN","GRASS",
+    "HABIT","HANDLE","HAPPY","HARDER","HEALTH","HEART","HEIGHT","HIGHER","HUMAN","HUNTER",
+    "IMPACT","IMPORT","IMPROVE","INCOME","INFORM","INSIDE","INSIST","INSPIRE","INSTEAD","INVEST",
+    "ISLAND","JACKET","JOURNEY","JUDGE","JUMPED","JUSTICE","KINDLY","KINGDOM","KNIGHT","KNOWLEDGE","AUTHOR"
+    ];
+
+    let level = 1;
+    let difficulty = 'easy';
+    let gridSize = 12;
+    let grid, boardElement, wordListElement, isMouseDown = false, selectedCells = [];
+    let levelComplete = false;
+    let score = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let currentWords = [];
+
+    function getWordsForLevel() {
+      const baseCount = difficulty === 'easy' ? 8 : difficulty === 'medium' ? 12 : 16;
+      const count = Math.min(baseCount + (level - 1) * 2, wordPool.length);
+      
+      return wordPool.slice(0, count).sort(() => Math.random() - 0.5);
+    }
+
+    function setDifficulty(newDifficulty) {
+      difficulty = newDifficulty;
+      document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      newGame();
+    }
+
+    function startTimer() {
+      startTime = Date.now();
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+      if (!startTime) return;
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function calculateScore(timeElapsed, hintsUsed) {
+      const baseScore = currentWords.length * 100;
+      const timeBonus = Math.max(0, 300 - timeElapsed);
+      const hintPenalty = hintsUsed * 10;
+      return Math.max(0, baseScore + timeBonus - hintPenalty);
+    }
+
+    function initBoard(words) {
+      currentWords = words;
+      boardElement = document.getElementById("board");
+      wordListElement = document.getElementById("wordList");
+      boardElement.innerHTML = "";
+      wordListElement.innerHTML = "";
+      levelComplete = false;
+
+      grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(""));
+
+      function placeWord(word) {
+        let placed = false;
+        let attempts = 0;
+        while (!placed && attempts < 100) {
+          attempts++;
+          let row = Math.floor(Math.random() * gridSize);
+          let col = Math.floor(Math.random() * gridSize);
+          let direction = Math.floor(Math.random() * 8);
+          
+          const directions = [
+            [0, 1],   // Horizontal
+            [1, 0],   // Vertical
+            [1, 1],   // Diagonal down-right
+            [-1, 1],  // Diagonal up-right
+            [0, -1],  // Horizontal backwards
+            [-1, 0],  // Vertical backwards
+            [-1, -1], // Diagonal up-left
+            [1, -1]   // Diagonal down-left
+          ];
+          
+          const [dr, dc] = directions[direction];
+          const endRow = row + dr * (word.length - 1);
+          const endCol = col + dc * (word.length - 1);
+          
+          if (endRow >= 0 && endRow < gridSize && endCol >= 0 && endCol < gridSize) {
+            let canPlace = true;
+            for (let i = 0; i < word.length; i++) {
+              const r = row + dr * i;
+              const c = col + dc * i;
+              if (grid[r][c] && grid[r][c] !== word[i]) {
+                canPlace = false;
+                break;
+              }
+            }
+            
+            if (canPlace) {
+              for (let i = 0; i < word.length; i++) {
+                const r = row + dr * i;
+                const c = col + dc * i;
+                grid[r][c] = word[i];
+              }
+              placed = true;
+            }
+          }
+        }
+      }
+
+      words.forEach(placeWord);
+      
+      // Fill empty cells
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (!grid[r][c]) {
+            grid[r][c] = alphabet[Math.floor(Math.random() * alphabet.length)];
+          }
+        }
+      }
+
+      // Create board cells
+      grid.forEach((row, r) => {
+        row.forEach((letter, c) => {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.textContent = letter;
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          boardElement.appendChild(cell);
+
+          cell.addEventListener("mousedown", () => {
+            isMouseDown = true;
+            selectedCells = [cell];
+            cell.classList.add("selected");
+          });
+          
+          cell.addEventListener("mouseenter", () => {
+            if (isMouseDown && !selectedCells.includes(cell)) {
+              selectedCells.push(cell);
+              cell.classList.add("selected");
+            }
+          });
+          
+          cell.addEventListener("mouseup", () => {
+            isMouseDown = false;
+            checkWord();
+          });
+        });
+      });
+
+      // Create word list
+      words.forEach((word, index) => {
+        const li = document.createElement("li");
+        li.textContent = word;
+        li.style.animationDelay = `${index * 0.1}s`;
+        li.style.animation = 'fadeInUp 0.5s ease forwards';
+        wordListElement.appendChild(li);
+      });
+
+      document.getElementById('wordCount').textContent = `${words.length} words selected for this level`;
+      displayAllWords();
+      updateUI();
+      startTimer();
+    }
+
+    function displayAllWords() {
+      const wordBank = document.getElementById('wordBank');
+      
+      const categories = {
+        'Tech': wordPool.slice(0, 40),
+        'Food & Fruits': wordPool.slice(40, 90),
+        'Animals': wordPool.slice(90, 140),
+        'Countries': wordPool.slice(140, 170),
+        'Sports & Misc': wordPool.slice(170)
+      };
+      
+      let html = '';
+      Object.entries(categories).forEach(([category, categoryWords]) => {
+        html += `<div style="margin-bottom: 8px;">`;
+        html += `<strong style="color: #ffdd57; font-size: 13px;">${category}:</strong><br>`;
+        html += `<span style="color: rgba(255,255,255,0.8);">${categoryWords.join(', ')}</span>`;
+        html += `</div>`;
+      });
+      
+      wordBank.innerHTML = html;
+    }
+
+    function updateUI() {
+      document.getElementById("levelLabel").textContent = `Level ${level} – Find ${currentWords.length} words`;
+      document.getElementById("score").textContent = score;
+      document.getElementById("levelStat").textContent = level;
+      
+      const foundCount = document.querySelectorAll("#wordList li.found").length;
+      document.getElementById("found").textContent = `${foundCount}/${currentWords.length}`;
+    }
+
+    function checkWord() {
+      if (selectedCells.length < 2) {
+        selectedCells.forEach(c => c.classList.remove("selected"));
+        selectedCells = [];
+        return;
+      }
+
+      let formed = selectedCells.map(c => c.textContent).join("");
+      let reversed = selectedCells.map(c => c.textContent).reverse().join("");
+      
+      const items = document.querySelectorAll("#wordList li");
+      let wordFound = false;
+      
+      items.forEach(li => {
+        if ((li.textContent === formed || li.textContent === reversed) && !li.classList.contains("found")) {
+          li.classList.add("found");
+          selectedCells.forEach(c => {
+            c.classList.remove("selected");
+            c.classList.add("found");
+          });
+          wordFound = true;
+          score += 50 + (li.textContent.length * 5);
+        }
+      });
+
+      if (!wordFound) {
+        selectedCells.forEach(c => c.classList.remove("selected"));
+      }
+      
+      selectedCells = [];
+      updateUI();
+      
+      const allFound = [...items].every(li => li.classList.contains("found"));
+      if (allFound && !levelComplete) {
+        levelComplete = true;
+        stopTimer();
+        
+        const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+        const levelScore = calculateScore(timeElapsed, 0);
+        score += levelScore;
+        
+        showCompletionMessage(timeElapsed, levelScore);
+      }
+    }
+
+    function showCompletionMessage(timeElapsed, levelScore) {
+      const msg = document.getElementById('completionMessage');
+      const text = document.getElementById('completionText');
+      
+      const minutes = Math.floor(timeElapsed / 60);
+      const seconds = timeElapsed % 60;
+      
+      text.innerHTML = `
+        Time: ${minutes}:${seconds.toString().padStart(2, '0')}<br>
+        Level Score: +${levelScore}<br>
+        Total Score: ${score}<br><br>
+        <span style="color: #ffdd57;">Auto-advancing to Level ${level + 1} in 3 seconds...</span>
+      `;
+      
+      msg.style.display = 'block';
+      
+      setTimeout(() => {
+        hideCompletion();
+        level++;
+        initBoard(getWordsForLevel());
+      }, 3000);
+    }
+
+    function hideCompletion() {
+      document.getElementById('completionMessage').style.display = 'none';
+    }
+
+    function newGame() {
+      stopTimer();
+      level = 1;
+      score = 0;
+      initBoard(getWordsForLevel());
+    }
+
+    function nextLevel() {
+      if (!levelComplete) {
+        alert("⚠️ You must complete all words before going to the next level!");
+        return;
+      }
+      hideCompletion();
+      level++;
+      initBoard(getWordsForLevel());
+    }
+
+    function hint() {
+      const notFound = [...document.querySelectorAll("#wordList li")].filter(li => !li.classList.contains("found"));
+      if (notFound.length > 0) {
+        const word = notFound[Math.floor(Math.random() * notFound.length)].textContent;
+        highlightFirstLetter(word);
+        score = Math.max(0, score - 10);
+        updateUI();
+      }
+    }
+
+    function highlightFirstLetter(word) {
+      [...document.querySelectorAll(".cell")].forEach(cell => {
+        if (cell.textContent === word[0] && !cell.classList.contains("found")) {
+          cell.style.background = "linear-gradient(135deg, #ff6b6b, #ffa500)";
+          cell.style.boxShadow = "0 0 20px rgba(255, 107, 107, 0.8)";
+          setTimeout(() => {
+            cell.style.background = "";
+            cell.style.boxShadow = "";
+          }, 2000);
+        }
+      });
+    }
+
+    function reveal() {
+      stopTimer();
+      [...document.querySelectorAll("#wordList li")].forEach(li => li.classList.add("found"));
+      [...document.querySelectorAll(".cell")].forEach(c => {
+        c.classList.remove("selected");
+        c.classList.add("found");
+      });
+      levelComplete = true;
+      updateUI();
+    }
+
+    function toggleHelp() {
+      const helpBox = document.getElementById("helpBox");
+      helpBox.style.display = helpBox.style.display === "block" ? "none" : "block";
+    }
+
+    // Global mouse up event
+    window.addEventListener("mouseup", () => {
+      if (isMouseDown) {
+        isMouseDown = false;
+        checkWord();
+      }
+    });
+
+    // Initialize game
+    newGame();
+  </script>
+</body>
+</html>
